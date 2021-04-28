@@ -1,15 +1,11 @@
 defmodule Crawler.Links do
   def find(html, root_authority) do
-    with {:ok, document} <- Floki.parse_document(html) do
-      links =
-        document
-        |> Floki.find("a")
-        |> Floki.attribute("href")
-        |> Enum.reduce([], &standardise_url(&1, &2, root_authority))
-        |> Enum.uniq()
-
-      {:ok, links}
-    end
+    html
+    |> Floki.parse_document!()
+    |> Floki.find("a")
+    |> Floki.attribute("href")
+    |> Enum.reduce([], &standardise_url(&1, &2, root_authority))
+    |> Enum.uniq()
   end
 
   defp standardise_url("/" <> link, acc, _) do
