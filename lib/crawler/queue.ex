@@ -11,14 +11,18 @@ defmodule Crawler.Queue do
   end
 
   def enqueue(pid, links) do
-    GenStage.cast(pid, {:enqueue, links})
+    GenStage.call(pid, {:enqueue, links})
   end
 
-  def handle_cast({:enqueue, links}, {queue, pending_demand, store_pid}) do
-    store_pid
-    |> Store.init_for_links(links)
-    |> Enum.reduce(queue, &:queue.in/2)
-    |> dispatch_events(pending_demand, [], store_pid)
+  def handle_call({:enqueue, links}, from, {queue, pending_demand, store_pid}) do
+    queue =
+      store_pid
+      |> Store.init_for_links(links)
+      |> Enum.reduce(queue, &:queue.in/2)
+
+    GenStage.reply(from, :ok)
+
+    dispatch_events(queue, pending_demand, [], store_pid)
   end
 
   def handle_demand(incoming_demand, {queue, pending_demand, store_pid}) do

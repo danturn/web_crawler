@@ -8,17 +8,19 @@ defmodule Crawler.Links do
     |> Enum.uniq()
   end
 
-  defp standardise_url("/" <> link, acc, _) do
-    ["/#{link}" | acc]
+  defp standardise_url("/" <> link, acc, root_authority) do
+    [url_from_path("/#{link}", root_authority) | acc]
   end
 
   defp standardise_url(link, acc, root_authority) do
     parsed = URI.parse(link)
 
     if parsed.authority == root_authority do
-      [parsed.path | acc]
+      [url_from_path(parsed.path, root_authority) | acc]
     else
       acc
     end
   end
+
+  defp url_from_path(path, root_authority), do: "https://#{root_authority}#{path}"
 end

@@ -1,12 +1,12 @@
 defmodule Crawler.Store do
   use GenServer
 
-  def start_link do
-    GenServer.start_link(__MODULE__, [])
+  def start_link(subscriber) do
+    GenServer.start_link(__MODULE__, subscriber)
   end
 
-  def init(_) do
-    {:ok, %{}}
+  def init(subscriber) do
+    {:ok, {%{}, subscriber}}
   end
 
   def init_for_links(pid, links) do
@@ -25,23 +25,39 @@ defmodule Crawler.Store do
     GenServer.call(pid, :show_state)
   end
 
-  def handle_call({:init_for_links, links}, _, state) do
-    {uncrawled, state} =
-      Enum.reduce(links, {[], state}, fn link, {acc, state} ->
-        if Map.has_key?(state, link) do
-          {acc, state}
+  def handle_call({:init_for_links, links}, _, {store, subscriber}) do
+    {uncrawled, store} =
+      Enum.reduce(links, {[], store}, fn link, {acc, store} ->
+        if Map.has_key?(store, link) do
+          {acc, store}
         else
-          state = Map.put(state, link, :pending)
-          {[link | acc], state}
+          store = Map.put(store, link, :pending)
+          {[link | acc], store}
         end
       end)
 
-    {:reply, Enum.reverse(uncrawled), state}
+    remaining_lookups = remaining_lookups(store)
+
+    {:reply, Enum.reverse(uncrawled), {store, subscriber}}
   end
 
-  def handle_call({:insert, link, child_links}, _, state) do
-    state = Map.update!(state, link, fn :pending -> child_links end)
-    {:reply, :ok, state}
+  def handle_call({:insert, link, child_links}, _, {store, subscriber}) do
+    store = Map.update!(store, link, fn :pending -> child_links end)
+
+    remaining_lookups = remaining_lookups(store)
+    send(subscriber, {:update, link, child_links, remaining_lookups})
+
+    if remaining_lookups == 0 do
+      send(subscriber, :complete)
+    end
+
+    {:reply, :ok, {store, subscriber}}
+  end
+
+  defp remaining_lookups(store) do
+    store
+    |> Enum.filter(fn {key, value} -> value == :pending end)
+    |> Enum.count()
   end
 
   def handle_call(:show_state, _, state) do

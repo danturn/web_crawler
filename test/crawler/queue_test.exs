@@ -2,8 +2,9 @@ defmodule Crawler.QueueTest do
   alias Crawler.{Store, Queue}
   use ExUnit.Case, async: true
 
+  @link "https://example.com"
   setup do
-    {:ok, store} = Store.start_link()
+    {:ok, store} = Store.start_link(self())
     {:ok, queue} = Queue.start_link(store)
     {:ok, queue_consumer} = QueueConsumer.start_link(self())
     GenStage.sync_subscribe(queue_consumer, to: queue)
@@ -12,24 +13,31 @@ defmodule Crawler.QueueTest do
       :ok = ProcessKiller.terminate(queue)
     end)
 
-    {:ok, %{queue: queue}}
+    {:ok, %{queue: queue, store: store}}
   end
 
   describe "enqueue/2" do
     test "subscribers to the queue receive events from enqueueing", %{queue: queue} do
-      paths = ["https://example.com"]
-      Queue.enqueue(queue, paths, [])
+      paths = [@link]
+      Queue.enqueue(queue, paths)
 
       assert_receive(^paths, 500)
     end
 
     test "subscribers to the queue do not receive events that are already seen", %{queue: queue} do
-      paths = ["https://example2.com"]
-      Queue.enqueue(queue, paths, [])
-      Queue.enqueue(queue, paths, [])
+      paths = [@link]
+      Queue.enqueue(queue, paths)
+      Queue.enqueue(queue, paths)
 
       assert_receive(^paths, 500)
       refute_receive(^paths, 500)
+    end
+
+    test "notifies the store that the link is in progress", %{queue: queue, store: store} do
+      paths = [@link]
+      Queue.enqueue(queue, paths)
+      assert_receive(^paths, 500)
+      assert {%{@link => :pending}, _} = :sys.get_state(store)
     end
   end
 

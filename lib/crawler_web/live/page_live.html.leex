@@ -1,13 +1,38 @@
-<section class="phx-hero">
-
-  <form phx-change="suggest" phx-submit="search">
-    <input type="text" name="q" value="<%= @query %>" placeholder="URL to crawl..." list="results" autocomplete="off"/>
-    <datalist id="results">
-      <%= for {app, _vsn} <- @results do %>
-        <option value="<%= app %>"><%= app %></option>
+<form phx-submit="search">
+  <section class="search">
+    <div class="search-bar">
+      <input type="text" name="q" value="<%= @query %>" placeholder="URL to crawl..." autocomplete="off" required />
+      <div class="button-container">
+        <%= case @state do %>
+          <% :idle -> %>
+            <button phx-click="lv:clear-flash" type="submit" >Go</button>
+          <% :waiting -> %>
+            <img class="throbber" src="<%= Routes.static_path(@socket, "/images/infinity-crop.gif") %>" alt="Crawling..."/>
+          <% :complete -> %>
+            <button phx-click="lv:clear-flash" type="submit">Go</button>
+        <% end %>
+      </div>
+    </div>
+    <%= if @state == :waiting do %>
+      <div class="remaining">
+        <p><strong><%= @remaining %></strong> Links left to parse...</p>
+      </div>
+    <% end %>
+    <%= if @state == :complete do %>
+      <div class="remaining">
+        <p><strong>Complete</strong></p>
+      </div>
+    <% end %>
+  </section>
+</form>
+<div class="results">
+  <%= for {link, children} <- @store do %>
+    <a href="<%= link %>" rel="noopener noreferrer" target="_blank"><%= link %></a>
+    <ul>
+      <%= for child <- children do %>
+        <li><a href="<%= child %>" rel="noopener noreferrer" target="_blank"><%= child %></a></li>
       <% end %>
-    </datalist>
-    <button type="submit" phx-disable-with="Searching...">Crawl!</button>
-  </form>
-</section>
+    </ul>
+  <% end %>
+</div>
 

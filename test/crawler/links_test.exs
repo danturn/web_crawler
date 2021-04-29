@@ -8,24 +8,25 @@ defmodule Crawler.LinksTest do
   end
 
   test "Single root link in document" do
-    assert ["/"] == Links.find(~s|<a href="/"|, @root_authority)
+    assert ["https://#{@root_authority}/"] == Links.find(~s|<a href="/"|, @root_authority)
   end
 
   test "Single relative link in document" do
-    assert ["/about"] == Links.find(~s|<a href="/about"|, @root_authority)
+    assert ["https://#{@root_authority}/about"] ==
+             Links.find(~s|<a href="/about"|, @root_authority)
   end
 
   test "Single absolute link in document" do
-    assert ["/about"] ==
+    assert ["https://#{@root_authority}/about"] ==
              Links.find(~s|<a href="https://#{@root_authority}/about"|, @root_authority)
   end
 
   test "Multiple tags in document" do
     assert [
-             "/blog",
-             "/news",
-             "/contact",
-             "/about"
+             "https://#{@root_authority}/blog",
+             "https://#{@root_authority}/news",
+             "https://#{@root_authority}/contact",
+             "https://#{@root_authority}/about"
            ] ==
              Links.find(
                """
@@ -42,8 +43,8 @@ defmodule Crawler.LinksTest do
 
   test "Removes duplicate tags" do
     assert [
-             "/blog",
-             "/about"
+             "https://#{@root_authority}/blog",
+             "https://#{@root_authority}/about"
            ] ==
              Links.find(
                """

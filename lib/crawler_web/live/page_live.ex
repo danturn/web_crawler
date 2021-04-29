@@ -1,39 +1,55 @@
 defmodule CrawlerWeb.PageLive do
   use CrawlerWeb, :live_view
+  alias Crawler.Result
 
-  @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, query: "", results: %{})}
+    {:ok, assign(socket, query: "", state: :idle, store: [], remaining: 1)}
   end
 
-  @impl true
-  def handle_event("suggest", %{"q" => query}, socket) do
-    {:noreply, assign(socket, results: search(query), query: query)}
-  end
-
-  @impl true
   def handle_event("search", %{"q" => query}, socket) do
-    case search(query) do
-      %{^query => vsn} ->
-        {:noreply, redirect(socket, external: "https://hexdocs.pm/#{query}/#{vsn}")}
-
-      _ ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "No dependencies found matching \"#{query}\"")
-         |> assign(results: %{}, query: query)}
-    end
+    query
+    |> String.downcase()
+    |> rescue_input()
+    |> Result.and_then(&validate_uri/1)
+    |> Result.and_then(fn uri ->
+      uri_string = URI.to_string(uri)
+      Crawler.start(uri_string, self())
+      {:noreply, assign(socket, store: [], state: :waiting, query: uri_string)}
+    end)
+    |> Result.otherwise(fn _ ->
+      {:noreply,
+       socket
+       |> put_flash(:error, ~s|Invalid url "#{query}" please try again|)
+       |> assign(store: [], query: query)}
+    end)
   end
 
-  defp search(query) do
-    if not CrawlerWeb.Endpoint.config(:code_reloader) do
-      raise "action disabled when not in development"
-    end
+  def handle_info(:complete, socket) do
+    {:noreply, assign(socket, state: :complete)}
+  end
 
-    for {app, desc, vsn} <- Application.started_applications(),
-        app = to_string(app),
-        String.starts_with?(app, query) and not List.starts_with?(desc, ~c"ERTS"),
-        into: %{},
-        do: {app, vsn}
+  def handle_info({:update, link, children, remaining}, socket) do
+    {:noreply,
+     socket
+     |> update(:store, fn store -> store ++ [{link, children}] end)
+     |> assign(remaining: remaining)}
+  end
+
+  defp validate_uri(uri) do
+    uri.host
+    |> to_char_list()
+    |> :inet.gethostbyname()
+    |> Result.and_then(fn _ -> {:ok, uri} end)
+  end
+
+  defp rescue_input(query) do
+    query
+    |> URI.parse()
+    |> case do
+      %URI{scheme: nil} -> rescue_input("https://#{query}")
+      %URI{host: nil} -> {:error, query}
+      %URI{path: nil} -> rescue_input("#{query}/")
+      uri -> {:ok, uri}
+    end
   end
 end

@@ -8,7 +8,7 @@ defmodule Crawler.StoreTest do
   @child2 "https://example.com/contact"
 
   setup do
-    {:ok, pid} = Store.start_link()
+    {:ok, pid} = Store.start_link(self())
 
     on_exit(fn ->
       ProcessKiller.terminate(pid)
@@ -20,18 +20,18 @@ defmodule Crawler.StoreTest do
   describe "init_for_links/2" do
     test "adds new links to store state", %{store: store} do
       assert [@link1, @link2] == Store.init_for_links(store, [@link1, @link2])
-      assert %{@link1 => :pending, @link2 => :pending} == :sys.get_state(store)
+      assert {%{@link1 => :pending, @link2 => :pending}, _} = :sys.get_state(store)
     end
 
     test "Ignores duplicates", %{store: store} do
       assert [@link1, @link2] == Store.init_for_links(store, [@link1, @link2, @link1])
-      assert %{@link1 => :pending, @link2 => :pending} == :sys.get_state(store)
+      assert {%{@link1 => :pending, @link2 => :pending}, _} = :sys.get_state(store)
     end
 
     test "Returned list filters out already known links", %{store: store} do
       assert [@link1] == Store.init_for_links(store, [@link1])
       assert [@link2] == Store.init_for_links(store, [@link1, @link2])
-      assert %{@link1 => :pending, @link2 => :pending} == :sys.get_state(store)
+      assert {%{@link1 => :pending, @link2 => :pending}, _} = :sys.get_state(store)
     end
   end
 
@@ -39,7 +39,27 @@ defmodule Crawler.StoreTest do
     test "Updates pending links with children", %{store: store} do
       assert [@link1] == Store.init_for_links(store, [@link1])
       assert :ok == Store.insert(store, @link1, [@child1, @child2])
-      assert %{@link1 => [@child1, @child2]} == :sys.get_state(store)
+      assert {%{@link1 => [@child1, @child2]}, _} = :sys.get_state(store)
+    end
+
+    test "Notifies subscribers on insert", %{store: store} do
+      assert [@link1] == Store.init_for_links(store, [@link1])
+      assert :ok == Store.insert(store, @link1, [@child1, @child2])
+      assert {%{@link1 => [@child1, @child2]}, _} = :sys.get_state(store)
+      assert_receive({:update, @link1, [@child1, @child2], 0})
+    end
+
+    test "Notifies subscribers when all pending are resolved", %{store: store} do
+      assert [@link1] == Store.init_for_links(store, [@link1])
+      assert [@link2] == Store.init_for_links(store, [@link2])
+
+      assert :ok == Store.insert(store, @link1, [@child1, @child2])
+      assert {%{@link1 => [@child1, @child2]}, _} = :sys.get_state(store)
+      assert_receive({:update, @link1, [@child1, @child2], 1})
+
+      assert :ok == Store.insert(store, @link2, [@child1])
+      assert {%{@link2 => [@child1]}, _} = :sys.get_state(store)
+      assert_receive({:update, @link2, [@child1], 0})
     end
 
     @tag :capture_log
