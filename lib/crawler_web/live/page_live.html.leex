@@ -26,18 +26,26 @@
   </section>
 </form>
 <div class="results">
-  <%= for {link, children} <- @store do %>
+  <% #TODO 404 doesnt work  %>
+  <%= for {link, links} <- @store |> IO.inspect do %>
     <a href="<%= link %>" rel="noopener noreferrer" target="_blank"><%= link %></a>
-    <ul>
-      <%= for child <- children do %>
-        <%= case child do %>
-          <% {:cannot_fetch, reason} -> %>
-            <li class="error"><%= reason %></li>
-          <% child -> %>
-            <li><a href="<%= child %>" rel="noopener noreferrer" target="_blank"><%= child %></a></li>
+      <div>
+        <%= for {type, children} <- links do %>
+          <%= if children != [] do %>
+            <p><%= type %></p>
+            <ul>
+              <%= for child <- children do %>
+                <%= case child do %>
+                  <% {:cannot_fetch, reason} -> %>
+                    <li class="error"><%= reason %></li>
+                  <% child -> %>
+                    <li><a href="<%= child %>" rel="noopener noreferrer" target="_blank"><%= child %></a></li>
+                <% end %>
+              <% end %>
+            </ul>
+          <% end %>
         <% end %>
-      <% end %>
-    </ul>
+      </div>
   <% end %>
 </div>
 

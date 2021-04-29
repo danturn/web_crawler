@@ -13,15 +13,15 @@ defmodule Crawler.Parser do
   def handle_events(html_results, _from, pids) do
     Enum.map(html_results, fn
       {url, {:cannot_fetch, reason}} ->
-        Crawler.Store.insert(pids.store, url, [{:cannot_fetch, reason}])
+        Crawler.Store.insert(pids.store, url, [%{a_tags: [{:cannot_fetch, reason}]}])
 
       {url, html} ->
         %{authority: root_authority} = URI.parse(url)
 
-        links =
-          html
-          |> Links.find(root_authority)
-          |> Enum.reduce([], fn child_url, acc ->
+        links = Links.find(html, root_authority)
+
+        links_to_crawl =
+          Enum.reduce(links.a_tags, [], fn child_url, acc ->
             if child_url == url do
               acc
             else
@@ -29,7 +29,7 @@ defmodule Crawler.Parser do
             end
           end)
 
-        Crawler.Queue.enqueue(pids.queue, links)
+        Crawler.Queue.enqueue(pids.queue, links_to_crawl)
         Crawler.Store.insert(pids.store, url, links)
     end)
 
