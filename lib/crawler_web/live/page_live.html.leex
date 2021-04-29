@@ -30,7 +30,12 @@
     <a href="<%= link %>" rel="noopener noreferrer" target="_blank"><%= link %></a>
     <ul>
       <%= for child <- children do %>
-        <li><a href="<%= child %>" rel="noopener noreferrer" target="_blank"><%= child %></a></li>
+        <%= case child do %>
+          <% {:cannot_fetch, reason} -> %>
+            <li class="error"><%= reason %></li>
+          <% child -> %>
+            <li><a href="<%= child %>" rel="noopener noreferrer" target="_blank"><%= child %></a></li>
+        <% end %>
       <% end %>
     </ul>
   <% end %>

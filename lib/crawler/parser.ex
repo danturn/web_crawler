@@ -12,8 +12,8 @@ defmodule Crawler.Parser do
 
   def handle_events(html_results, _from, pids) do
     Enum.map(html_results, fn
-      {url, :cannot_fetch} ->
-        Crawler.Store.insert(pids.store, url, [:cannot_fetch])
+      {url, {:cannot_fetch, reason}} ->
+        Crawler.Store.insert(pids.store, url, [{:cannot_fetch, reason}])
 
       {url, html} ->
         %{authority: root_authority} = URI.parse(url)

@@ -8,7 +8,6 @@ defmodule CrawlerWeb.PageLive do
 
   def handle_event("search", %{"q" => query}, socket) do
     query
-    |> String.downcase()
     |> rescue_input()
     |> Result.and_then(&validate_uri/1)
     |> Result.and_then(fn uri ->

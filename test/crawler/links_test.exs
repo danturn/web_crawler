@@ -3,26 +3,35 @@ defmodule Crawler.LinksTest do
   alias Crawler.Links
 
   @root_authority "example.com"
-  test "No links in empty document" do
+  test "No <a> tags in empty document" do
     assert [] == Links.find("", @root_authority)
   end
 
-  test "Single root link in document" do
+  test "Single root <a> tag in document" do
     assert ["https://#{@root_authority}/"] == Links.find(~s|<a href="/"|, @root_authority)
   end
 
-  test "Single relative link in document" do
+  test "Single relative <a> tag in document" do
     assert ["https://#{@root_authority}/about"] ==
              Links.find(~s|<a href="/about"|, @root_authority)
   end
 
-  test "Single absolute link in document" do
+  test "Single absolute <a> tag in document" do
     assert ["https://#{@root_authority}/about"] ==
              Links.find(~s|<a href="https://#{@root_authority}/about"|, @root_authority)
   end
 
+  test "Link in document" do
+    assert ["https://#{@root_authority}/site.css"] ==
+             Links.find(
+               ~s|<link rel="stylesheet" href="/site.css">|,
+               @root_authority
+             )
+  end
+
   test "Multiple tags in document" do
     assert [
+             "https://#{@root_authority}/site.css",
              "https://#{@root_authority}/blog",
              "https://#{@root_authority}/news",
              "https://#{@root_authority}/contact",
@@ -35,6 +44,7 @@ defmodule Crawler.LinksTest do
                    <a href="/contact">
                    <a href="/news">
                    <a href="https://#{@root_authority}/blog">
+                   <link rel="stylesheet" href="/site.css">
                  </html>
                """,
                @root_authority

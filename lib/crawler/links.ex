@@ -2,7 +2,7 @@ defmodule Crawler.Links do
   def find(html, root_authority) do
     html
     |> Floki.parse_document!()
-    |> Floki.find("a")
+    |> Floki.find("a, link")
     |> Floki.attribute("href")
     |> Enum.reduce([], &standardise_url(&1, &2, root_authority))
     |> Enum.uniq()

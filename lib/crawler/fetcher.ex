@@ -16,8 +16,8 @@ defmodule Crawler.Fetcher do
         with {:ok, html} <- get(path) do
           [{path, html} | acc]
         else
-          _ ->
-            [{path, :cannot_fetch} | acc]
+          {:error, reason} ->
+            [{path, {:cannot_fetch, reason}} | acc]
         end
       end)
 
@@ -33,8 +33,8 @@ defmodule Crawler.Fetcher do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         {:ok, body}
 
-      {:ok, %HTTPoison.Response{status_code: _}} ->
-        {:error, :naughty_error_code}
+      {:ok, %HTTPoison.Response{status_code: code}} ->
+        {:error, code}
 
       {:error, %HTTPoison.Error{reason: reason}} ->
         {:error, reason}
