@@ -33,7 +33,7 @@
           <% links -> %>
             <%= for { type, children} <- links  do %>
               <%= if children != [] do %>
-                <p><%= type |> IO.inspect %></p>
+                <p><%= type %></p>
                 <ul>
                   <%= for child <- children do %>
                     <li>

@@ -27,6 +27,7 @@ defmodule CrawlerWeb.PageLive do
   end
 
   def handle_info(:complete, socket) do
+    # TODO this completes waaaaay before the front end finishes updating, wondering if there's a more optimal way of streaming the results, maybe we should batch them ?
     duration = DateTime.diff(DateTime.utc_now(), socket.assigns.start_time)
     {:noreply, assign(socket, state: {:complete, duration})}
   end
