@@ -3,7 +3,7 @@ defmodule CrawlerWeb.PageLive do
   alias Crawler.Result
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, query: "", state: :idle, store: [], remaining: 1)}
+    {:ok, assign(socket, query: "", state: :idle, store: [])}
   end
 
   def handle_event("search", %{"q" => query}, socket) do
@@ -12,8 +12,11 @@ defmodule CrawlerWeb.PageLive do
     |> Result.and_then(&validate_uri/1)
     |> Result.and_then(fn uri ->
       uri_string = URI.to_string(uri)
+      start_time = DateTime.utc_now()
       Crawler.start(uri_string, self())
-      {:noreply, assign(socket, store: [], state: :waiting, query: uri_string)}
+
+      {:noreply,
+       assign(socket, store: [], state: {:waiting, 1}, query: uri_string, start_time: start_time)}
     end)
     |> Result.otherwise(fn _ ->
       {:noreply,
@@ -24,14 +27,15 @@ defmodule CrawlerWeb.PageLive do
   end
 
   def handle_info(:complete, socket) do
-    {:noreply, assign(socket, state: :complete)}
+    duration = DateTime.diff(DateTime.utc_now(), socket.assigns.start_time)
+    {:noreply, assign(socket, state: {:complete, duration})}
   end
 
   def handle_info({:update, link, children, remaining}, socket) do
     {:noreply,
      socket
      |> update(:store, fn store -> store ++ [{link, children}] end)
-     |> assign(remaining: remaining)}
+     |> assign(state: {:waiting, remaining})}
   end
 
   defp validate_uri(uri) do

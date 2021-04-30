@@ -3,47 +3,48 @@
     <div class="search-bar">
       <input type="text" name="q" value="<%= @query %>" placeholder="URL to crawl..." autocomplete="off" required />
       <div class="button-container">
-        <%= case @state do %>
-          <% :idle -> %>
-            <button phx-click="lv:clear-flash" type="submit" >Go</button>
-          <% :waiting -> %>
+        <%= if match?({:waiting, _}, @state) do %>
             <img class="throbber" src="<%= Routes.static_path(@socket, "/images/infinity-crop.gif") %>" alt="Crawling..."/>
-          <% :complete -> %>
-            <button phx-click="lv:clear-flash" type="submit">Go</button>
+        <% else %>
+            <button phx-click="lv:clear-flash" type="submit" >Go</button>
         <% end %>
       </div>
     </div>
-    <%= if @state == :waiting do %>
+    <%= case @state do %>
+      <% {:waiting, remaining} -> %>
       <div class="remaining">
-        <p><strong><%= @remaining %></strong> Links left to parse...</p>
+        <p><strong><%= remaining %></strong> Links left to parse...</p>
       </div>
-    <% end %>
-    <%= if @state == :complete do %>
+      <% :idle -> %>
+      <% {:complete, duration} -> %>
       <div class="remaining">
-        <p><strong>Complete</strong></p>
+        <p><strong>Completed in <%= duration %> seconds</strong></p>
       </div>
     <% end %>
   </section>
 </form>
 <div class="results">
-  <% #TODO 404 doesnt work  %>
-  <%= for {link, links} <- @store |> IO.inspect do %>
+  <%= for {link, links} <- @store do %>
     <a href="<%= link %>" rel="noopener noreferrer" target="_blank"><%= link %></a>
       <div>
-        <%= for {type, children} <- links do %>
-          <%= if children != [] do %>
-            <p><%= type %></p>
-            <ul>
-              <%= for child <- children do %>
-                <%= case child do %>
-                  <% {:cannot_fetch, reason} -> %>
-                    <li class="error"><%= reason %></li>
-                  <% child -> %>
-                    <li><a href="<%= child %>" rel="noopener noreferrer" target="_blank"><%= child %></a></li>
-                <% end %>
+        <%= case links do %>
+          <% {:cannot_fetch, reason} -> %>
+            <li class="error"><%= inspect reason %></li>
+          <% links -> %>
+            <%= for { type, children} <- links  do %>
+              <%= if children != [] do %>
+                <p><%= type |> IO.inspect %></p>
+                <ul>
+                  <%= for child <- children do %>
+                    <li>
+                      <a href="<%= child %>" rel="noopener noreferrer" target="_blank">
+                        <%= child %>
+                      </a>
+                    </li>
+                  <% end %>
+                </ul>
               <% end %>
-            </ul>
-          <% end %>
+            <% end %>
         <% end %>
       </div>
   <% end %>
