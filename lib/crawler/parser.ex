@@ -16,12 +16,17 @@ defmodule Crawler.Parser do
         Crawler.Store.insert(pids.store, url, {:cannot_fetch, reason})
 
       {url, html} ->
-        %{authority: root_authority} = URI.parse(url)
+        %{authority: root_authority, scheme: scheme} = URI.parse(url)
 
-        links = Links.find(html, root_authority)
+        links = Links.find(html, root_authority, scheme)
 
         links_to_crawl =
-          Enum.reduce(links.a_tags, [], fn child_url, acc ->
+          links.a_tags.internal
+          |> Enum.reduce([], fn child_url, acc ->
+            if String.ends_with?(child_url, "/") do
+              raise child_url
+            end
+
             if child_url == url do
               acc
             else

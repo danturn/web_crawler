@@ -45,6 +45,7 @@ defmodule Crawler.Store do
     store = Map.update!(store, link, fn :pending -> child_links end)
 
     remaining_lookups = remaining_lookups(store)
+
     send(subscriber, {:update, link, child_links, remaining_lookups})
 
     if remaining_lookups == 0 do

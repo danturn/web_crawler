@@ -49,19 +49,6 @@ button:focus {
         max-height: 63px;
       }
 
-      button {
-        color: white;
-        background-color: #2a9fde;
-        border-radius: 24px;
-        padding: 12px 32px;
-        border: 1px solid #2a9fde;
-      }
-      button:disabled {
-        background-color: #7cb4d2;
-      }
-      button:hover {
-        background-color: #1e7eb1;
-      }
 
     }
     input {
@@ -71,19 +58,38 @@ button:focus {
     }
   }
 }
+button {
+  color: white;
+  background-color: #2a9fde;
+  border-radius: 24px;
+  padding: 12px 32px;
+  border: 1px solid #2a9fde;
+}
+button:disabled {
+  background-color: #7cb4d2;
+}
+button:hover {
+  background-color: #1e7eb1;
+}
 
 
 .results {
   margin: 32px 128px;
-  display: grid;
-  width: 50%;
-  grid-template-columns: auto auto;
-  gap: 10px;
-  ul {
-    margin: 0;
-  }
-  li {
-    padding: 8px 0px;
+  width: 75%;
+  .result-section {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 10px;
+    padding: 64px;
+    margin-bottom: 50px;
+      box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    border-radius: 8px;
+    ul {
+      margin: 0;
+    }
+    li {
+      padding: 8px 0px;
+    }
   }
 
 }

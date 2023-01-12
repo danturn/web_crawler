@@ -42,6 +42,12 @@ defmodule Crawler.StoreTest do
       assert {%{@link1 => [@child1, @child2]}, _} = :sys.get_state(store)
     end
 
+    test "Ignores duplicates", %{store: store} do
+      assert [@link1] == Store.init_for_links(store, [@link1])
+      assert :ok == Store.insert(store, @link1, [@child1, @child2])
+      assert {%{@link1 => [@child1, @child2]}, _} = :sys.get_state(store)
+    end
+
     test "Notifies subscribers on insert", %{store: store} do
       assert [@link1] == Store.init_for_links(store, [@link1])
       assert :ok == Store.insert(store, @link1, [@child1, @child2])

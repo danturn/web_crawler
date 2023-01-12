@@ -1,0 +1,68 @@
+<section class="search">
+  <form phx-submit="search">
+    <div class="search-bar">
+      <input type="text" name="query" value={@query} placeholder="URL to crawl..." autocomplete="off" required />
+      <div class="button-container">
+        <%= if match?({:waiting, _}, @state) do %>
+          <img class="throbber" src={Routes.static_path(@socket, "/images/infinity-crop.gif")} alt="Crawling..."/>
+        <% else %>
+          <button phx-click="lv:clear-flash" type="submit" >Go</button>
+        <% end %>
+      </div>
+    </div>
+  </form>
+
+  <%= case @state do %>
+    <% {:waiting, remaining} -> %>
+      <div class="remaining">
+        <p><strong><%= @page_count %></strong> Pages crawled... <strong><%= remaining %></strong> Links left to parse</p>
+      </div>
+      <% :idle -> %>
+        <% {:complete, duration} -> %>
+          <div class="remaining">
+            <p><strong>Completed! found: <%= @page_count %> pages in <%= duration %> seconds</strong></p>
+          </div>
+          <button phx-click="download-images" >Download all images</button>
+          <div class="results" id="results" phx-update="append">
+            <%= for {link, links} <- @store do %>
+              <div class="result-section" id={link}>
+                <a href={link} rel="noopener noreferrer" target="_blank"><%= link %></a>
+                <div>
+                  <%= case links do %>
+                    <% {:cannot_fetch, reason} -> %>
+                      <li class="error"><%= inspect reason %></li>
+                      <% links -> %>
+                        <%= for { type, %{internal: internal, external: external}} <- links  do %>
+                          <%= if internal != [] do %>
+                            <h2><%= type %> - internal</h2>
+                            <ul>
+                              <%= for child <- internal do %>
+                                <li>
+                                  <a href={child} rel="noopener noreferrer" target="_blank">
+                                    <%= child %>
+                                  </a>
+                                </li>
+                              <% end %>
+                            </ul>
+                          <% end %>
+                          <%= if external != [] do %>
+                            <h2><%= type %> - external</h2>
+                            <ul>
+                              <%= for child <- external do %>
+                                <li>
+                                  <a href={child} rel="noopener noreferrer" target="_blank">
+                                    <%= child %>
+                                  </a>
+                                </li>
+                              <% end %>
+                            </ul>
+                          <% end %>
+                        <% end %>
+                      <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+
+</section>
